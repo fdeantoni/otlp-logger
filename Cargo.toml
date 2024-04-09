@@ -1,0 +1,26 @@
+[package]
+name = "otlp-logger"
+version = "0.1.0"
+edition = "2021"
+authors = ["fdeantoni <fdeantoni@gmail.com>"]
+license = "Apache-2.0"
+keywords = ["logging", "tracing", "opentelemetry", "otlp"]
+description = "A simple convenience crate to configure an OpenTelemetry otlp endpoint with Tokio Tracing."
+repository = "https://github.com/fdeantoni/tiny-tokio-actor"
+resolver = "2"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+tracing-subscriber = { version = "0.3", features = ["env-filter", "fmt"] }
+tracing-opentelemetry = "0.23.0"
+opentelemetry = { version = "0.22.0", features = ["trace", "metrics", "logs"] }
+opentelemetry_sdk = { version = "0.22.0", features = ["metrics", "rt-tokio"] }
+opentelemetry-otlp = { version = "0.15.0", features = ["trace", "metrics", "logs"] }
+opentelemetry-semantic-conventions = "0.14.0"
+anyhow = "1.0"
+thiserror = "1.0"
+derive_builder = "0.20.0"
+
+[dev-dependencies]
+tracing = "0.1"
