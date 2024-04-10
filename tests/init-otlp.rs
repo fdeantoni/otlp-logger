@@ -1,4 +1,6 @@
 mod jaeger;
+
+use std::env;
 use tracing::*;
 use testcontainers::clients::Cli;
 
@@ -8,6 +10,12 @@ use crate::jaeger::Jaeger;
 #[tokio::test]
 #[tracing::instrument]
 async fn test_otlp() -> Result<(), Box<dyn std::error::Error + 'static>> {
+
+    if env::consts::OS == "macos" && env::var("GITHUB_ACTIONS").is_ok() {
+        println!("Skipping test on OSX in GitHub Actions");
+        return Ok(());
+    }
+
     let docker = Cli::default();
     let image = Jaeger::default();
     let container = docker.run(image);
