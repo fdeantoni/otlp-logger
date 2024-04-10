@@ -11,7 +11,7 @@ use crate::jaeger::Jaeger;
 #[tracing::instrument]
 async fn test_otlp() -> Result<(), Box<dyn std::error::Error + 'static>> {
 
-    if env::consts::OS == "macos" && env::var("GITHUB_ACTIONS").is_ok() {
+    if env::consts::OS != "linux" && env::var("GITHUB_ACTIONS").is_ok() {
         println!("Skipping test on OSX in GitHub Actions");
         return Ok(());
     }
@@ -27,12 +27,10 @@ async fn test_otlp() -> Result<(), Box<dyn std::error::Error + 'static>> {
     std::env::set_var("OTEL_EXPORTER_OTLP_ENDPOINT", endpoint);
 
     otlp_logger::init();
-    tokio::time::sleep(std::time::Duration::from_secs(5)).await;
 
     info!("This is an info message");
     let result = trace_me(5, 2);
     trace!(result, "Result of adding two numbers");
-    tokio::time::sleep(std::time::Duration::from_secs(5)).await;
 
     Ok(())
 }

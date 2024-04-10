@@ -31,8 +31,9 @@ pub fn otel_resource(config: &OtlpConfig) -> Resource {
 
     let app = Resource::new(provided);
 
-    app.merge(&sdk_resource)
+    sdk_resource
+        .merge(&telemetry_resource)
         .merge(&os_resource)
         .merge(&process_resource)
-        .merge(&telemetry_resource)
+        .merge(&app)
 }

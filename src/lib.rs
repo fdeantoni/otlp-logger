@@ -173,7 +173,7 @@ pub fn init() {
     });
 }
 
-pub fn end() {
+pub fn shutdown() {
     end_otel();
 }
 
