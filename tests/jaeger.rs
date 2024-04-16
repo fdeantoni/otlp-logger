@@ -3,6 +3,8 @@ use testcontainers::{core::WaitFor, Image};
 const NAME: &str = "jaegertracing/all-in-one";
 const TAG: &str = "1.56";
 const DEFAULT_WAIT: u64 = 3000;
+pub const OTLP_PORT: u16 = 4317;
+pub const JAEGER_PORT: u16 = 16686;
 
 #[derive(Debug, Default, Clone)]
 pub struct Jaeger;

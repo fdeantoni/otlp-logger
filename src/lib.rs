@@ -15,14 +15,19 @@
 //! ```rust
 //! 
 //! fn main() {
-//!    otlp_logger::init();
-//!   // Your application code
+//!   // Initialize the OpenTelemetry logger using environment variables
+//!   otlp_logger::init();
+//!   // ... your application code
+//! 
+//!   // and optionally call open telemetry logger shutdown to make sure all the 
+//!   // data is sent to the configured endpoint before the application exits
+//!   otlp_logger::shutdown();
 //! }
 //! ```
 //! 
 //! If the `OTEL_EXPORTER_OTLP_ENDPOINT` environment variable is set, the
 //! OpenTelemetry logger will be used. Otherwise, the logger will default to
-//! stdout.
+//! only stdout.
 //! 
 //! The OpenTelemetry logger can be configured with the following environment
 //! variables:
@@ -49,10 +54,30 @@
 //! }
 //! ```
 //! 
-//! Both traces and metrics are sent to the configured OTLP endpoint. The traces
-//! filter level can be controled with RUST_LOG environment variable. The metrics
-//! filter level is fixed at `LevelFilter::TRACE` so as not to pollute the logs 
-//! with meter increments and the like when at DEBUG or higher levels.
+//! Both traces and metrics are sent to the configured OTLP endpoint. The traces, 
+//! metrics, and log level are configured via the RUST_LOG environment variable.
+//! This behavior can be overridden by setting the `trace_level`, `metrics_level`, or
+//! `stdout_level` fields in the `OtlpConfig` struct.
+//! ```rust
+//! use otlp_logger::{OtlpConfigBuilder, LevelFilter};
+//! 
+//! fn main() {
+//!   let config = OtlpConfigBuilder::default()
+//!                  .otlp_endpoint("http://localhost:4317".to_string())
+//!                  .metrics_level(LevelFilter::TRACE)
+//!                  .trace_level(LevelFilter::INFO)
+//!                  .stdout_level(LevelFilter::ERROR)
+//!                  .build()
+//!                  .expect("failed to configure otlp-logger");
+//! 
+//!   otlp_logger::init_with_config(config);
+//! 
+//!   // ... your application code
+//! 
+//!   // shutdown the logger
+//!   otlp_logger::shutdown();
+//! }
+//! ````
 //! 
 //! [`tracing`]: https://crates.io/crates/tracing
 //! [`opentelemetry`]: https://crates.io/crates/opentelemetry
@@ -86,6 +111,9 @@ pub struct OtlpConfig {
     service_instant_id: Option<String>,
     deployment_environment: Option<String>,  
     otlp_endpoint: Option<String>,   
+    trace_level: Option<LevelFilter>,   
+    metrics_level: Option<LevelFilter>,
+    stdout_level: Option<LevelFilter>,    
 }
 
 fn init_otel(config: &OtlpConfig) -> Result<()> {
@@ -98,15 +126,15 @@ fn init_otel(config: &OtlpConfig) -> Result<()> {
     let tracer = otel_tracer(otlp_endpoint, resource.clone())?;
     let traces_layer = tracing_opentelemetry::layer()
         .with_tracer(tracer)
-        .with_filter(EnvFilter::from_default_env());
+        .with_filter(define_filter_level(config.trace_level));
 
     let meter = otel_meter(otlp_endpoint, resource)?;
     let metrics_layer = tracing_opentelemetry::MetricsLayer::new(meter)
-        .with_filter(LevelFilter::TRACE);
+        .with_filter(define_filter_level(config.metrics_level));
 
     let stdout_layer = fmt::Layer::default()
         .compact()
-        .with_filter(EnvFilter::from_default_env());
+        .with_filter(define_filter_level(config.stdout_level));
 
     tracing_subscriber::registry()
         .with(traces_layer)
@@ -116,6 +144,13 @@ fn init_otel(config: &OtlpConfig) -> Result<()> {
         .context("Could not init tracing registry")?;
 
     Ok(())
+}
+
+fn define_filter_level(level: Option<LevelFilter>) -> EnvFilter {
+    match level {
+        Some(l) => EnvFilter::default().add_directive(l.into()),
+        None => EnvFilter::from_default_env(),
+    }
 }
 
 fn end_otel() {
@@ -191,6 +226,9 @@ mod tests {
             .service_instant_id("test-instant-id".to_string())
             .deployment_environment("test-environment".to_string())
             .otlp_endpoint(Some("http://localhost:4317".to_string()))
+            .metrics_level(LevelFilter::INFO)
+            .trace_level(LevelFilter::DEBUG)
+            .stdout_level(LevelFilter::WARN)
             .build()
             .unwrap();
 
@@ -200,6 +238,9 @@ mod tests {
         assert_eq!(config.service_instant_id, Some("test-instant-id".to_string()));
         assert_eq!(config.deployment_environment, Some("test-environment".to_string()));
         assert_eq!(config.otlp_endpoint, Some("http://localhost:4317".to_string()));        
+        assert_eq!(config.metrics_level, Some(LevelFilter::INFO));
+        assert_eq!(config.trace_level, Some(LevelFilter::DEBUG));
+        assert_eq!(config.stdout_level, Some(LevelFilter::WARN));
     }
 
     #[test]
@@ -213,7 +254,10 @@ mod tests {
         assert_eq!(config.service_version, None);
         assert_eq!(config.service_instant_id, None);
         assert_eq!(config.deployment_environment, None);
-        assert_eq!(config.otlp_endpoint, None);        
+        assert_eq!(config.otlp_endpoint, None);      
+        assert_eq!(config.metrics_level, None);
+        assert_eq!(config.trace_level, None);
+        assert_eq!(config.stdout_level, None);  
     }
 
 }
