@@ -10,15 +10,20 @@ Simply add the following to your `Cargo.toml`:
 ```toml
 [dependencies]
 tracing = "0.1"
-otlp-logger = "0.1"
+otlp-logger = "0.2"
+tokio = { version = "1.37", features = ["rt", "macros"] }
 ```
+
+Because this crate uses the batching function of the OpenTelemetry SDK, it is
+required to use the `tokio` runtime. Due to this requirement, the [`tokio`] crate
+must be added as a dependency in your `Cargo.toml` file.
 
 In your code initialize the logger with:
 ```rust
-
-fn main() {
+#[tokio::main]
+async fn main() {
   // Initialize the OpenTelemetry logger using environment variables
-  otlp_logger::init();
+  otlp_logger::init().await;
   // ... your application code
 
   // and optionally call open telemetry logger shutdown to make sure all the
@@ -49,30 +54,32 @@ messages. For example:
 ```rust
 use tracing::{info, error};
 
-fn main() {
-   otlp_logger::init();
+#[tokio::main]
+async fn main() {
+   otlp_logger::init().await;
    info!("This is an info message");
    error!("This is an error message");
 }
 ```
 
-Both traces and metrics are sent to the configured OTLP endpoint. The traces,
+Traces, metrics, and logs are sent to the configured OTLP endpoint. The traces,
 metrics, and log level are configured via the RUST_LOG environment variable.
 This behavior can be overridden by setting the `trace_level`, `metrics_level`, or
 `stdout_level` fields in the `OtlpConfig` struct.
 ```rust
 use otlp_logger::{OtlpConfigBuilder, LevelFilter};
 
-fn main() {
+#[tokio::main]
+async fn main() {
   let config = OtlpConfigBuilder::default()
                  .otlp_endpoint("http://localhost:4317".to_string())
                  .metrics_level(LevelFilter::TRACE)
                  .trace_level(LevelFilter::INFO)
                  .stdout_level(LevelFilter::ERROR)
                  .build()
-                 .expect("failed to configure otlp-logger");
+                 .expect("failed to create otlp config builder");
 
-  otlp_logger::init_with_config(config);
+  otlp_logger::init_with_config(config).await.expect("failed to initialize logger");
 
   // ... your application code
 
@@ -81,6 +88,7 @@ fn main() {
 }
 ````
 
+[`tokio`]: https://crates.io/crates/tokio
 [`tracing`]: https://crates.io/crates/tracing
 [`opentelemetry`]: https://crates.io/crates/opentelemetry
 

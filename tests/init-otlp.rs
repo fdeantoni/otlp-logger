@@ -32,7 +32,7 @@ async fn test_otlp() -> Result<(), Box<dyn std::error::Error + 'static>> {
     let service_name = "init-otlp";
     std::env::set_var("OTEL_RESOURCE_ATTRIBUTES", format!("service.name={}", service_name));
 
-    otlp_logger::init();
+    otlp_logger::init().await;
 
     info!("This is an info message");
     let result = trace_me(5, 2);

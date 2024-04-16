@@ -8,15 +8,20 @@
 //! ```toml
 //! [dependencies]
 //! tracing = "0.1"
-//! otlp-logger = "0.1"
+//! otlp-logger = "0.2"
+//! tokio = { version = "1.37", features = ["rt", "macros"] }
 //! ```
+//! 
+//! Because this crate uses the batching function of the OpenTelemetry SDK, it is
+//! required to use the `tokio` runtime. Due to this requirement, the [`tokio`] crate
+//! must be added as a dependency in your `Cargo.toml` file.
 //! 
 //! In your code initialize the logger with:
 //! ```rust
-//! 
-//! fn main() {
+//! #[tokio::main]
+//! async fn main() {
 //!   // Initialize the OpenTelemetry logger using environment variables
-//!   otlp_logger::init();
+//!   otlp_logger::init().await;
 //!   // ... your application code
 //! 
 //!   // and optionally call open telemetry logger shutdown to make sure all the 
@@ -47,30 +52,32 @@
 //! ```rust
 //! use tracing::{info, error};
 //! 
-//! fn main() {
-//!    otlp_logger::init();
+//! #[tokio::main]
+//! async fn main() {
+//!    otlp_logger::init().await;
 //!    info!("This is an info message");
 //!    error!("This is an error message");
 //! }
 //! ```
 //! 
-//! Both traces and metrics are sent to the configured OTLP endpoint. The traces, 
+//! Traces, metrics, and logs are sent to the configured OTLP endpoint. The traces, 
 //! metrics, and log level are configured via the RUST_LOG environment variable.
 //! This behavior can be overridden by setting the `trace_level`, `metrics_level`, or
 //! `stdout_level` fields in the `OtlpConfig` struct.
 //! ```rust
 //! use otlp_logger::{OtlpConfigBuilder, LevelFilter};
 //! 
-//! fn main() {
+//! #[tokio::main]
+//! async fn main() {
 //!   let config = OtlpConfigBuilder::default()
 //!                  .otlp_endpoint("http://localhost:4317".to_string())
 //!                  .metrics_level(LevelFilter::TRACE)
 //!                  .trace_level(LevelFilter::INFO)
 //!                  .stdout_level(LevelFilter::ERROR)
 //!                  .build()
-//!                  .expect("failed to configure otlp-logger");
+//!                  .expect("failed to create otlp config builder");
 //! 
-//!   otlp_logger::init_with_config(config);
+//!   otlp_logger::init_with_config(config).await.expect("failed to initialize logger");
 //! 
 //!   // ... your application code
 //! 
@@ -79,6 +86,7 @@
 //! }
 //! ````
 //! 
+//! [`tokio`]: https://crates.io/crates/tokio
 //! [`tracing`]: https://crates.io/crates/tracing
 //! [`opentelemetry`]: https://crates.io/crates/opentelemetry
 //!
@@ -170,7 +178,7 @@ impl std::fmt::Display for TryInitError {
     }
 }
 
-pub fn try_init() -> Result<(), TryInitError> {
+pub async fn try_init() -> Result<(), TryInitError> {
     let endpoint = std::env::var(OTEL_EXPORTER_OTLP_ENDPOINT).ok();
     let config = OtlpConfigBuilder::default()
         .otlp_endpoint(endpoint)
@@ -179,10 +187,10 @@ pub fn try_init() -> Result<(), TryInitError> {
             msg: "Failed to configure endpoint from environment".to_string(),
             source: e.into(),
         })?;
-    init_with_config(config)
+    init_with_config(config).await
 }
 
-pub fn init_with_config(config: OtlpConfig) -> Result<(), TryInitError> {
+pub async fn init_with_config(config: OtlpConfig) -> Result<(), TryInitError> {
     if config.otlp_endpoint.is_some() {
         init_otel(&config).map_err(|e| TryInitError {
             msg: "Failed to initialize OpenTelemetry".to_string(),
@@ -197,13 +205,13 @@ pub fn init_with_config(config: OtlpConfig) -> Result<(), TryInitError> {
     }
 }
 
-pub fn init() {
+pub async fn init() {
     let endpoint = std::env::var(OTEL_EXPORTER_OTLP_ENDPOINT).ok();
     let config = OtlpConfigBuilder::default()
         .otlp_endpoint(endpoint)
         .build()
         .expect("failed to configure endpoint from environment");
-    init_with_config(config).unwrap_or_else(|e| {
+    init_with_config(config).await.unwrap_or_else(|e| {
         panic!("Failed to initialize OpenTelemetry: {}", e);
     });
 }
@@ -241,6 +249,27 @@ mod tests {
         assert_eq!(config.metrics_level, Some(LevelFilter::INFO));
         assert_eq!(config.trace_level, Some(LevelFilter::DEBUG));
         assert_eq!(config.stdout_level, Some(LevelFilter::WARN));
+    }
+
+    #[test]
+    fn test_config_builder_some() {
+        let config = OtlpConfigBuilder::default()
+             .otlp_endpoint("http://localhost:4317".to_string())
+             .metrics_level(LevelFilter::TRACE)
+             .trace_level(LevelFilter::INFO)
+             .stdout_level(LevelFilter::ERROR)
+             .build()
+             .expect("failed to configure otlp-logger");
+
+        assert_eq!(config.service_name, None);
+        assert_eq!(config.service_namespace, None);
+        assert_eq!(config.service_version, None);
+        assert_eq!(config.service_instant_id, None);
+        assert_eq!(config.deployment_environment, None);
+        assert_eq!(config.otlp_endpoint, Some("http://localhost:4317".to_string()));
+        assert_eq!(config.metrics_level, Some(LevelFilter::TRACE));
+        assert_eq!(config.trace_level, Some(LevelFilter::INFO));
+        assert_eq!(config.stdout_level, Some(LevelFilter::ERROR));        
     }
 
     #[test]

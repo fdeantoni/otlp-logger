@@ -39,7 +39,7 @@ async fn override_level() -> Result<(), Box<dyn std::error::Error + 'static>> {
         .trace_level(LevelFilter::TRACE)
         .build()
         .unwrap();
-    otlp_logger::init_with_config(config).unwrap();
+    otlp_logger::init_with_config(config).await.unwrap();
 
     info!("This is an info message");
     let result = trace_me(5, 2);
