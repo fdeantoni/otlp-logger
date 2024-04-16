@@ -1,4 +1,5 @@
 # otlp-logger
+[![crates.io](https://buildstats.info/crate/otlp-logger)](https://crates.io/crates/otlp-logger) [![build](https://github.com/fdeantoni/otlp-logger/actions/workflows/rust.yml/badge.svg)](https://github.com/fdeantoni/otlp-logger/actions/workflows/rust.yml)
 
 ## OpenTelemetry Logging with Tokio Tracing
 
