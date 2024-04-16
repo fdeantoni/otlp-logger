@@ -6,7 +6,7 @@ authors = ["fdeantoni <fdeantoni@gmail.com>"]
 license = "Apache-2.0"
 keywords = ["logging", "tracing", "opentelemetry", "otlp"]
 description = "A simple convenience crate to configure an OpenTelemetry otlp endpoint with Tokio Tracing."
-repository = "https://github.com/fdeantoni/tiny-tokio-actor"
+repository = "https://github.com/fdeantoni/otlp-logger"
 resolver = "2"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
