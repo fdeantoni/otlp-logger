@@ -59,8 +59,6 @@ async fn override_level() -> Result<(), Box<dyn std::error::Error + 'static>> {
     
     assert_eq!(traces["data"].as_array().unwrap().len(), 1);
 
-    tokio::time::sleep(std::time::Duration::from_secs(1)).await;
-
     Ok(())
 }
 

@@ -110,7 +110,7 @@ use metrics::*;
 use trace::*;
 
 
-#[derive(Default, Builder, Debug)]
+#[derive(Default, Builder)]
 #[builder(setter(into), default)]
 pub struct OtlpConfig {    
     service_name: Option<String>,
@@ -121,7 +121,14 @@ pub struct OtlpConfig {
     otlp_endpoint: Option<String>,   
     trace_level: Option<LevelFilter>,   
     metrics_level: Option<LevelFilter>,
-    stdout_level: Option<LevelFilter>,    
+    stdout_level: Option<LevelFilter>,
+    metrics_aggregation: MetricsAggregation,
+}
+
+impl OtlpConfig {
+    pub fn builder() -> OtlpConfigBuilder {
+        OtlpConfigBuilder::default()
+    }
 }
 
 fn init_otel(config: &OtlpConfig) -> Result<()> {
@@ -136,7 +143,7 @@ fn init_otel(config: &OtlpConfig) -> Result<()> {
         .with_tracer(tracer)
         .with_filter(define_filter_level(config.trace_level));
 
-    let meter = otel_meter(otlp_endpoint, resource)?;
+    let meter = otel_meter(otlp_endpoint, resource, config.metrics_aggregation.clone())?;
     let metrics_layer = tracing_opentelemetry::MetricsLayer::new(meter)
         .with_filter(define_filter_level(config.metrics_level));
 
@@ -237,6 +244,7 @@ mod tests {
             .metrics_level(LevelFilter::INFO)
             .trace_level(LevelFilter::DEBUG)
             .stdout_level(LevelFilter::WARN)
+            .metrics_aggregation(MetricsAggregation::default())
             .build()
             .unwrap();
 
@@ -286,7 +294,8 @@ mod tests {
         assert_eq!(config.otlp_endpoint, None);      
         assert_eq!(config.metrics_level, None);
         assert_eq!(config.trace_level, None);
-        assert_eq!(config.stdout_level, None);  
+        assert_eq!(config.stdout_level, None);
+        assert_eq!(config.metrics_aggregation, MetricsAggregation::default());  
     }
 
 }
