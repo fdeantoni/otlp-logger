@@ -7,7 +7,7 @@ const TAG: &str = "0.98.0";
 const DEFAULT_WAIT: u64 = 3000;
 
 pub const OTLP_PORT: u16 = 4317;
-pub const ZPAGES_PORT: u16 = 55679;
+pub const PROM_METRICS_PORT: u16 = 55679;
 
 const DEFAULT_CONFIG: &str = r#"
 receivers:
@@ -16,16 +16,13 @@ receivers:
       grpc:
       http:
 
-extensions:
-  zpages:
-    endpoint: ":55679"
-
 exporters:
   debug:
     verbosity: detailed
+  prometheus:
+    endpoint: ":55679"
 
 service:
-  extensions: [zpages]
   pipelines:
     traces:
       receivers: [otlp]
@@ -34,7 +31,7 @@ service:
     metrics:
       receivers: [otlp]
       processors: []
-      exporters: [debug]
+      exporters: [debug, prometheus]
     logs:
       receivers: [otlp]
       processors: []

@@ -31,7 +31,7 @@ async fn override_level() -> Result<(), Box<dyn std::error::Error + 'static>> {
 
     std::env::set_var("RUST_LOG", "info,override_level=error");
 
-    let service_name = "init-otlp";
+    let service_name = "override-level";
 
     let config = OtlpConfigBuilder::default()
         .otlp_endpoint(endpoint)

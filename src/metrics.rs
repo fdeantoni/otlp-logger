@@ -6,27 +6,27 @@ use opentelemetry_sdk::{
     metrics::{self, reader::{AggregationSelector, DefaultAggregationSelector}, InstrumentKind},
     Resource,
 };
-pub use opentelemetry_sdk::metrics::Aggregation;
+pub use opentelemetry_sdk::metrics::Aggregation as MetricsAggregation;
 
 #[derive(Clone, Builder, Debug, PartialEq)]
 #[builder(setter(into), default)]
-pub struct MetricsAggregation {
-    counter: Aggregation,
-    up_down_counter: Aggregation,
-    observable_counter: Aggregation,
-    observable_up_down_counter: Aggregation,
-    gauge: Aggregation,
-    observable_gauge: Aggregation,
-    histogram: Aggregation,
+pub struct MetricsAggregationConfig {
+    counter: MetricsAggregation,
+    up_down_counter: MetricsAggregation,
+    observable_counter: MetricsAggregation,
+    observable_up_down_counter: MetricsAggregation,
+    gauge: MetricsAggregation,
+    observable_gauge: MetricsAggregation,
+    histogram: MetricsAggregation,
 }
 
-impl MetricsAggregation {
-    pub fn builder() -> MetricsAggregationBuilder {
-        MetricsAggregationBuilder::default()
+impl MetricsAggregationConfig {
+    pub fn builder() -> MetricsAggregationConfigBuilder {
+        MetricsAggregationConfigBuilder::default()
     }
 }
 
-impl Default for MetricsAggregation {
+impl Default for MetricsAggregationConfig {
     fn default() -> Self {
         let default = DefaultAggregationSelector::new();
         Self {
@@ -41,8 +41,8 @@ impl Default for MetricsAggregation {
     }
 }
 
-impl AggregationSelector for MetricsAggregation {
-    fn aggregation(&self, kind: InstrumentKind) -> Aggregation {
+impl AggregationSelector for MetricsAggregationConfig {
+    fn aggregation(&self, kind: InstrumentKind) -> MetricsAggregation {
         match kind {
             InstrumentKind::Counter => self.counter.clone(),
             InstrumentKind::UpDownCounter => self.up_down_counter.clone(),
@@ -55,7 +55,7 @@ impl AggregationSelector for MetricsAggregation {
     }
 }
 
-pub fn otel_meter(endpoint: &str, resource: Resource, aggregation: MetricsAggregation) -> Result<metrics::SdkMeterProvider> {
+pub fn otel_meter(endpoint: &str, resource: Resource, aggregation: MetricsAggregationConfig) -> Result<metrics::SdkMeterProvider> {
     let provider = opentelemetry_otlp::new_pipeline()
         .metrics(opentelemetry_sdk::runtime::Tokio)
         .with_exporter(
@@ -77,23 +77,23 @@ mod tests {
 
     #[test]
     fn test_otlp_metrics_config_builder() {
-        let config = MetricsAggregationBuilder::default()
-            .counter(Aggregation::LastValue)
-            .up_down_counter(Aggregation::LastValue)
-            .observable_counter(Aggregation::LastValue)
-            .observable_up_down_counter(Aggregation::LastValue)
-            .gauge(Aggregation::LastValue)
-            .observable_gauge(Aggregation::LastValue)
-            .histogram(Aggregation::LastValue)
+        let config = MetricsAggregationConfig::builder()
+            .counter(MetricsAggregation::LastValue)
+            .up_down_counter(MetricsAggregation::LastValue)
+            .observable_counter(MetricsAggregation::LastValue)
+            .observable_up_down_counter(MetricsAggregation::LastValue)
+            .gauge(MetricsAggregation::LastValue)
+            .observable_gauge(MetricsAggregation::LastValue)
+            .histogram(MetricsAggregation::LastValue)
             .build()
             .unwrap();
 
-        assert_eq!(config.counter, Aggregation::LastValue);
-        assert_eq!(config.up_down_counter, Aggregation::LastValue);
-        assert_eq!(config.observable_counter, Aggregation::LastValue);
-        assert_eq!(config.observable_up_down_counter, Aggregation::LastValue);
-        assert_eq!(config.gauge, Aggregation::LastValue);
-        assert_eq!(config.observable_gauge, Aggregation::LastValue);
-        assert_eq!(config.histogram, Aggregation::LastValue);
+        assert_eq!(config.counter, MetricsAggregation::LastValue);
+        assert_eq!(config.up_down_counter, MetricsAggregation::LastValue);
+        assert_eq!(config.observable_counter, MetricsAggregation::LastValue);
+        assert_eq!(config.observable_up_down_counter, MetricsAggregation::LastValue);
+        assert_eq!(config.gauge, MetricsAggregation::LastValue);
+        assert_eq!(config.observable_gauge, MetricsAggregation::LastValue);
+        assert_eq!(config.histogram, MetricsAggregation::LastValue);
     }
 }

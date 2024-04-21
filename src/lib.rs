@@ -84,7 +84,41 @@
 //!   // shutdown the logger
 //!   otlp_logger::shutdown();
 //! }
-//! ````
+//! ```
+//! 
+//! The OtlpConfig struct also allows you to configure metrics aggregation. Under the hood
+//! the default aggregation is provided by the OpenTelemetry SDK's DefaultAggregationSelector.
+//! The default can be overridden by setting the `metrics_aggregation` field in the `OtlpConfig`
+//! struct. The `metrics_aggregation` field is of type `MetricsAggregationConfig` which can be
+//! built with `MetricsAggregationConfigBuilder` struct.
+//! ```rust
+//! use otlp_logger::{OtlpConfig, MetricsAggregation, MetricsAggregationConfig};
+//! 
+//! #[tokio::main]
+//! async fn main() {
+//! 
+//!   let metrics = MetricsAggregationConfig::builder()
+//!        .histogram(MetricsAggregation::ExplicitBucketHistogram {
+//!            boundaries: vec![
+//!                0.0, 5.0, 10.0, 25.0, 50.0, 75.0, 100.0, 250.0, 500.0, 750.0, 1000.0
+//!            ],
+//!            record_min_max: true,
+//!        }).build().expect("valid aggregation");
+//! 
+//!   let config = OtlpConfig::builder()
+//!                 .otlp_endpoint("http://localhost:4317".to_string())
+//!                 .metrics_aggregation(metrics)
+//!                 .build()
+//!                 .expect("failed to create otlp config builder");
+//! 
+//!   otlp_logger::init_with_config(config).await.expect("failed to initialize logger");
+//! 
+//!   // ... your application code
+//! 
+//!   // shutdown the logger
+//!   otlp_logger::shutdown();
+//! }
+//! ```
 //! 
 //! [`tokio`]: https://crates.io/crates/tokio
 //! [`tracing`]: https://crates.io/crates/tracing
@@ -106,7 +140,7 @@ mod metrics;
 mod trace;
 
 use resource::*;
-use metrics::*;
+pub use metrics::*;
 use trace::*;
 
 
@@ -122,7 +156,7 @@ pub struct OtlpConfig {
     trace_level: Option<LevelFilter>,   
     metrics_level: Option<LevelFilter>,
     stdout_level: Option<LevelFilter>,
-    metrics_aggregation: MetricsAggregation,
+    metrics_aggregation: MetricsAggregationConfig,
 }
 
 impl OtlpConfig {
@@ -234,7 +268,7 @@ mod tests {
 
     #[test]
     fn test_config_builder_all() {
-        let config = OtlpConfigBuilder::default()
+        let config = OtlpConfig::builder()
             .service_name("test-service".to_string())
             .service_namespace("test-namespace".to_string())
             .service_version("test-version".to_string())
@@ -244,7 +278,7 @@ mod tests {
             .metrics_level(LevelFilter::INFO)
             .trace_level(LevelFilter::DEBUG)
             .stdout_level(LevelFilter::WARN)
-            .metrics_aggregation(MetricsAggregation::default())
+            .metrics_aggregation(MetricsAggregationConfig::default())
             .build()
             .unwrap();
 
@@ -261,7 +295,7 @@ mod tests {
 
     #[test]
     fn test_config_builder_some() {
-        let config = OtlpConfigBuilder::default()
+        let config = OtlpConfig::builder()
              .otlp_endpoint("http://localhost:4317".to_string())
              .metrics_level(LevelFilter::TRACE)
              .trace_level(LevelFilter::INFO)
@@ -282,7 +316,7 @@ mod tests {
 
     #[test]
     fn test_config_builder_none() {
-        let config = OtlpConfigBuilder::default()
+        let config = OtlpConfig::builder()
             .build()
             .unwrap();
 
@@ -295,7 +329,6 @@ mod tests {
         assert_eq!(config.metrics_level, None);
         assert_eq!(config.trace_level, None);
         assert_eq!(config.stdout_level, None);
-        assert_eq!(config.metrics_aggregation, MetricsAggregation::default());  
+        assert_eq!(config.metrics_aggregation, MetricsAggregationConfig::default());  
     }
-
 }
