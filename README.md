@@ -1,5 +1,6 @@
-# otlp-logger
 [![crates.io](https://buildstats.info/crate/otlp-logger)](https://crates.io/crates/otlp-logger) [![build](https://github.com/fdeantoni/otlp-logger/actions/workflows/rust.yml/badge.svg)](https://github.com/fdeantoni/otlp-logger/actions/workflows/rust.yml)
+
+# otlp-logger
 
 ## OpenTelemetry Logging with Tokio Tracing
 
@@ -11,7 +12,7 @@ Simply add the following to your `Cargo.toml`:
 ```toml
 [dependencies]
 tracing = "0.1"
-otlp-logger = "0.2"
+otlp-logger = "0.3"
 tokio = { version = "1.37", features = ["rt", "macros"] }
 ```
 
@@ -87,11 +88,47 @@ async fn main() {
   // shutdown the logger
   otlp_logger::shutdown();
 }
-````
+```
+
+The OtlpConfig struct also allows you to configure metrics aggregation. Under the hood
+the default aggregation is provided by the OpenTelemetry SDK's DefaultAggregationSelector.
+The default can be overridden by setting the `metrics_aggregation` field in the `OtlpConfig`
+struct. The `metrics_aggregation` field is of type `MetricsAggregationConfig` which can be
+built with `MetricsAggregationConfigBuilder` struct.
+```rust
+use otlp_logger::{OtlpConfig, MetricsAggregation, MetricsAggregationConfig};
+
+#[tokio::main]
+async fn main() {
+
+  let metrics = MetricsAggregationConfig::builder()
+       .histogram(MetricsAggregation::ExplicitBucketHistogram {
+           boundaries: vec![
+               0.0, 5.0, 10.0, 25.0, 50.0, 75.0, 100.0, 250.0, 500.0, 750.0, 1000.0
+           ],
+           record_min_max: true,
+       }).build().expect("valid aggregation");
+
+  let config = OtlpConfig::builder()
+                .otlp_endpoint("http://localhost:4317".to_string())
+                .metrics_aggregation(metrics)
+                .build()
+                .expect("failed to create otlp config builder");
+
+  otlp_logger::init_with_config(config).await.expect("failed to initialize logger");
+
+  // ... your application code
+
+  // shutdown the logger
+  otlp_logger::shutdown();
+}
+```
 
 [`tokio`]: https://crates.io/crates/tokio
 [`tracing`]: https://crates.io/crates/tracing
 [`opentelemetry`]: https://crates.io/crates/opentelemetry
 
+
+Current version: 0.3.0
 
 License: Apache-2.0
