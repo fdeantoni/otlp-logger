@@ -8,7 +8,7 @@
 //! ```toml
 //! [dependencies]
 //! tracing = "0.1"
-//! otlp-logger = "0.2"
+//! otlp-logger = "0.3"
 //! tokio = { version = "1.37", features = ["rt", "macros"] }
 //! ```
 //! 

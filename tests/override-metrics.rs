@@ -65,7 +65,6 @@ async fn override_metrics() -> Result<(), Box<dyn std::error::Error + 'static>> 
     let res = reqwest::get(url).await.expect("valid HTTP response");
     let metrics = res.text().await.unwrap();
     
-    println!("Metrics: {:?}", metrics);
     assert!(metrics.contains("adding_some_result_total{a=\"5\",b=\"2\",job=\"override-metrics\"} 7"));
     assert!(metrics.contains("adding_some_timing_count{a=\"5\",b=\"2\",job=\"override-metrics\"} 1"));
 
