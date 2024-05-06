@@ -8,7 +8,7 @@ use otlp_logger::OtlpConfig;
 use otlp_logger::MetricsAggregationConfig;
 use otlp_logger::MetricsAggregation;
 
-use testcontainers::clients::Cli;
+use testcontainers::runners::AsyncRunner;
 
 use crate::collector::{Collector, OTLP_PORT, PROM_METRICS_PORT};
 
@@ -22,11 +22,10 @@ async fn override_metrics() -> Result<(), Box<dyn std::error::Error + 'static>> 
         return Ok(());
     }
 
-    let docker = Cli::default();
     let image = Collector::default();
-    let container = docker.run(image);
+    let container = image.start().await;
 
-    let port = container.get_host_port_ipv4(OTLP_PORT);
+    let port = container.get_host_port_ipv4(OTLP_PORT).await;
     let endpoint = format!("http://localhost:{}", port);
 
     std::env::set_var("RUST_LOG", "info,override_metrics=trace");
@@ -57,7 +56,7 @@ async fn override_metrics() -> Result<(), Box<dyn std::error::Error + 'static>> 
 
     tokio::time::sleep(std::time::Duration::from_secs(10)).await;
 
-    let prom_port = container.get_host_port_ipv4(PROM_METRICS_PORT);
+    let prom_port = container.get_host_port_ipv4(PROM_METRICS_PORT).await;
     let url = format!(
         "http://localhost:{}/metrics",
         prom_port,

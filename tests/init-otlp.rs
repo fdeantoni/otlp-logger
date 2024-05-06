@@ -5,7 +5,7 @@ use tracing::*;
 
 use serde_json::Value;
 
-use testcontainers::clients::Cli;
+use testcontainers::runners::AsyncRunner;
 
 use crate::jaeger::{Jaeger, JAEGER_PORT, OTLP_PORT};
 
@@ -19,11 +19,10 @@ async fn test_otlp() -> Result<(), Box<dyn std::error::Error + 'static>> {
         return Ok(());
     }
 
-    let docker = Cli::default();
     let image = Jaeger::default();
-    let container = docker.run(image);
+    let container = image.start().await;
 
-    let port = container.get_host_port_ipv4(OTLP_PORT);
+    let port = container.get_host_port_ipv4(OTLP_PORT).await;
     let endpoint = format!("http://localhost:{}", port);
 
     std::env::set_var("RUST_LOG", "info,init_otlp=trace");
@@ -40,7 +39,7 @@ async fn test_otlp() -> Result<(), Box<dyn std::error::Error + 'static>> {
 
     tokio::time::sleep(std::time::Duration::from_secs(1)).await;
 
-    let jaeger_port = container.get_host_port_ipv4(JAEGER_PORT);
+    let jaeger_port = container.get_host_port_ipv4(JAEGER_PORT).await;
     let url = format!(
         "http://localhost:{}/api/traces?service={}",
         jaeger_port,
