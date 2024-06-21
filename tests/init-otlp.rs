@@ -20,9 +20,9 @@ async fn test_otlp() -> Result<(), Box<dyn std::error::Error + 'static>> {
     }
 
     let image = Jaeger::default();
-    let container = image.start().await;
+    let container = image.start().await?;
 
-    let port = container.get_host_port_ipv4(OTLP_PORT).await;
+    let port = container.get_host_port_ipv4(OTLP_PORT).await?;
     let endpoint = format!("http://localhost:{}", port);
 
     std::env::set_var("RUST_LOG", "info,init_otlp=trace");
@@ -39,14 +39,14 @@ async fn test_otlp() -> Result<(), Box<dyn std::error::Error + 'static>> {
 
     tokio::time::sleep(std::time::Duration::from_secs(1)).await;
 
-    let jaeger_port = container.get_host_port_ipv4(JAEGER_PORT).await;
+    let jaeger_port = container.get_host_port_ipv4(JAEGER_PORT).await?;
     let url = format!(
         "http://localhost:{}/api/traces?service={}",
         jaeger_port,
         service_name
     );
-    let res = reqwest::get(url).await.expect("valid HTTP response");
-    let traces = res.json::<Value>().await.unwrap();
+    let res = reqwest::get(url).await?;
+    let traces = res.json::<Value>().await?;
     
     println!("Response: {:?}", traces);    
 

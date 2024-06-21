@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use testcontainers::{core::WaitFor, Image, ImageArgs};
+use testcontainers::{core::WaitFor, Image};
 
 const NAME: &str = "otel/opentelemetry-collector-contrib";
 const TAG: &str = "0.98.0";
@@ -38,15 +38,6 @@ service:
       exporters: [debug]
 "#;
 
-#[derive(Debug, Default, Clone)]
-pub struct CollectorArgs;
-
-impl ImageArgs for CollectorArgs {
-    fn into_iterator(self) -> Box<dyn Iterator<Item = String>> {
-        Box::new(vec!["--config=env:CONFIG".to_owned()].into_iter())
-    }
-}
-
 #[derive(Debug, Clone)]
 pub struct Collector {
     env_vars: HashMap<String, String>,
@@ -61,16 +52,20 @@ impl Default for Collector {
 }
 
 impl Image for Collector {
-    type Args = CollectorArgs;
 
-    fn name(&self) -> String {
-        NAME.to_owned()
+    fn name(&self) -> &str {
+        NAME
     }
 
-    fn tag(&self) -> String {
-        TAG.to_owned()
+    fn tag(&self) -> &str {
+        TAG
     }
 
+    fn cmd(&self) -> impl IntoIterator<Item = impl Into<std::borrow::Cow<'_, str>>> {
+        vec!["--config=env:CONFIG".to_owned()]
+    }
+
+    #[allow(refining_impl_trait)]
     fn env_vars(&self) -> Box<dyn Iterator<Item = (&String, &String)> + '_> {
         Box::new(self.env_vars.iter())
     }    

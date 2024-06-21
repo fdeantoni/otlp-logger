@@ -23,9 +23,9 @@ async fn override_metrics() -> Result<(), Box<dyn std::error::Error + 'static>> 
     }
 
     let image = Collector::default();
-    let container = image.start().await;
+    let container = image.start().await?;
 
-    let port = container.get_host_port_ipv4(OTLP_PORT).await;
+    let port = container.get_host_port_ipv4(OTLP_PORT).await?;
     let endpoint = format!("http://localhost:{}", port);
 
     std::env::set_var("RUST_LOG", "info,override_metrics=trace");
@@ -39,7 +39,7 @@ async fn override_metrics() -> Result<(), Box<dyn std::error::Error + 'static>> 
             ],
             record_min_max: true,
         }
-    ).build().expect("valid aggregation");
+    ).build()?;
 
     let config = OtlpConfig::builder()
         .otlp_endpoint(endpoint)
@@ -47,7 +47,7 @@ async fn override_metrics() -> Result<(), Box<dyn std::error::Error + 'static>> 
         .metrics_aggregation(aggregation)
         .build()
         .unwrap();
-    otlp_logger::init_with_config(config).await.unwrap();
+    otlp_logger::init_with_config(config).await?;
 
     info!("This is an info message");
     let result = trace_me(5, 2);
@@ -56,13 +56,13 @@ async fn override_metrics() -> Result<(), Box<dyn std::error::Error + 'static>> 
 
     tokio::time::sleep(std::time::Duration::from_secs(10)).await;
 
-    let prom_port = container.get_host_port_ipv4(PROM_METRICS_PORT).await;
+    let prom_port = container.get_host_port_ipv4(PROM_METRICS_PORT).await?;
     let url = format!(
         "http://localhost:{}/metrics",
         prom_port,
     );
-    let res = reqwest::get(url).await.expect("valid HTTP response");
-    let metrics = res.text().await.unwrap();
+    let res = reqwest::get(url).await?;
+    let metrics = res.text().await?;
     
     assert!(metrics.contains("adding_some_result_total{a=\"5\",b=\"2\",job=\"override-metrics\"} 7"));
     assert!(metrics.contains("adding_some_timing_count{a=\"5\",b=\"2\",job=\"override-metrics\"} 1"));
