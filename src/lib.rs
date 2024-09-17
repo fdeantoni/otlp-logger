@@ -60,9 +60,9 @@
 //! }
 //! ```
 //! 
-//! Traces, metrics, and logs are sent to the configured OTLP endpoint. The traces, 
-//! metrics, and log level are configured via the RUST_LOG environment variable.
-//! This behavior can be overridden by setting the `trace_level`, `metrics_level`, or
+//! Traces and logs are sent to the configured OTLP endpoint. The traces  
+//! and log levels are configured via the RUST_LOG environment variable.
+//! This behavior can be overridden by setting the `trace_level` or
 //! `stdout_level` fields in the `OtlpConfig` struct.
 //! ```rust
 //! use otlp_logger::{OtlpConfigBuilder, LevelFilter};
@@ -71,45 +71,10 @@
 //! async fn main() {
 //!   let config = OtlpConfigBuilder::default()
 //!                  .otlp_endpoint("http://localhost:4317".to_string())
-//!                  .metrics_level(LevelFilter::TRACE)
 //!                  .trace_level(LevelFilter::INFO)
 //!                  .stdout_level(LevelFilter::ERROR)
 //!                  .build()
 //!                  .expect("failed to create otlp config builder");
-//! 
-//!   otlp_logger::init_with_config(config).await.expect("failed to initialize logger");
-//! 
-//!   // ... your application code
-//! 
-//!   // shutdown the logger
-//!   otlp_logger::shutdown();
-//! }
-//! ```
-//! 
-//! The OtlpConfig struct also allows you to configure metrics aggregation. Under the hood
-//! the default aggregation is provided by the OpenTelemetry SDK's DefaultAggregationSelector.
-//! The default can be overridden by setting the `metrics_aggregation` field in the `OtlpConfig`
-//! struct. The `metrics_aggregation` field is of type `MetricsAggregationConfig` which can be
-//! built with `MetricsAggregationConfigBuilder` struct.
-//! ```rust
-//! use otlp_logger::{OtlpConfig, MetricsAggregation, MetricsAggregationConfig};
-//! 
-//! #[tokio::main]
-//! async fn main() {
-//! 
-//!   let metrics = MetricsAggregationConfig::builder()
-//!        .histogram(MetricsAggregation::ExplicitBucketHistogram {
-//!            boundaries: vec![
-//!                0.0, 5.0, 10.0, 25.0, 50.0, 75.0, 100.0, 250.0, 500.0, 750.0, 1000.0
-//!            ],
-//!            record_min_max: true,
-//!        }).build().expect("valid aggregation");
-//! 
-//!   let config = OtlpConfig::builder()
-//!                 .otlp_endpoint("http://localhost:4317".to_string())
-//!                 .metrics_aggregation(metrics)
-//!                 .build()
-//!                 .expect("failed to create otlp config builder");
 //! 
 //!   otlp_logger::init_with_config(config).await.expect("failed to initialize logger");
 //! 
@@ -136,11 +101,9 @@ pub use tracing_subscriber::filter::LevelFilter;
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt, *};
 
 mod resource;
-mod metrics;
 mod trace;
 
 use resource::*;
-pub use metrics::*;
 use trace::*;
 
 
@@ -154,9 +117,7 @@ pub struct OtlpConfig {
     deployment_environment: Option<String>,  
     otlp_endpoint: Option<String>,   
     trace_level: Option<LevelFilter>,   
-    metrics_level: Option<LevelFilter>,
     stdout_level: Option<LevelFilter>,
-    metrics_aggregation: MetricsAggregationConfig,
 }
 
 impl OtlpConfig {
@@ -177,17 +138,12 @@ fn init_otel(config: &OtlpConfig) -> Result<()> {
         .with_tracer(tracer)
         .with_filter(define_filter_level(config.trace_level));
 
-    let meter = otel_meter(otlp_endpoint, resource, config.metrics_aggregation.clone())?;
-    let metrics_layer = tracing_opentelemetry::MetricsLayer::new(meter)
-        .with_filter(define_filter_level(config.metrics_level));
-
     let stdout_layer = fmt::Layer::default()
         .compact()
         .with_filter(define_filter_level(config.stdout_level));
 
     tracing_subscriber::registry()
         .with(traces_layer)
-        .with(metrics_layer)
         .with(stdout_layer)
         .try_init()
         .context("Could not init tracing registry")?;
@@ -204,7 +160,6 @@ fn define_filter_level(level: Option<LevelFilter>) -> EnvFilter {
 
 fn end_otel() {
     opentelemetry::global::shutdown_tracer_provider();
-    opentelemetry::global::shutdown_logger_provider();
 }
 
 #[derive(Error, Debug)]
@@ -275,10 +230,8 @@ mod tests {
             .service_instant_id("test-instant-id".to_string())
             .deployment_environment("test-environment".to_string())
             .otlp_endpoint(Some("http://localhost:4317".to_string()))
-            .metrics_level(LevelFilter::INFO)
             .trace_level(LevelFilter::DEBUG)
             .stdout_level(LevelFilter::WARN)
-            .metrics_aggregation(MetricsAggregationConfig::default())
             .build()
             .unwrap();
 
@@ -288,7 +241,6 @@ mod tests {
         assert_eq!(config.service_instant_id, Some("test-instant-id".to_string()));
         assert_eq!(config.deployment_environment, Some("test-environment".to_string()));
         assert_eq!(config.otlp_endpoint, Some("http://localhost:4317".to_string()));        
-        assert_eq!(config.metrics_level, Some(LevelFilter::INFO));
         assert_eq!(config.trace_level, Some(LevelFilter::DEBUG));
         assert_eq!(config.stdout_level, Some(LevelFilter::WARN));
     }
@@ -297,7 +249,6 @@ mod tests {
     fn test_config_builder_some() {
         let config = OtlpConfig::builder()
              .otlp_endpoint("http://localhost:4317".to_string())
-             .metrics_level(LevelFilter::TRACE)
              .trace_level(LevelFilter::INFO)
              .stdout_level(LevelFilter::ERROR)
              .build()
@@ -309,7 +260,6 @@ mod tests {
         assert_eq!(config.service_instant_id, None);
         assert_eq!(config.deployment_environment, None);
         assert_eq!(config.otlp_endpoint, Some("http://localhost:4317".to_string()));
-        assert_eq!(config.metrics_level, Some(LevelFilter::TRACE));
         assert_eq!(config.trace_level, Some(LevelFilter::INFO));
         assert_eq!(config.stdout_level, Some(LevelFilter::ERROR));        
     }
@@ -326,9 +276,7 @@ mod tests {
         assert_eq!(config.service_instant_id, None);
         assert_eq!(config.deployment_environment, None);
         assert_eq!(config.otlp_endpoint, None);      
-        assert_eq!(config.metrics_level, None);
         assert_eq!(config.trace_level, None);
-        assert_eq!(config.stdout_level, None);
-        assert_eq!(config.metrics_aggregation, MetricsAggregationConfig::default());  
+        assert_eq!(config.stdout_level, None); 
     }
 }

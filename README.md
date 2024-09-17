@@ -1,4 +1,6 @@
-[![crates.io](https://buildstats.info/crate/otlp-logger)](https://crates.io/crates/otlp-logger) [![build](https://github.com/fdeantoni/otlp-logger/actions/workflows/rust.yml/badge.svg)](https://github.com/fdeantoni/otlp-logger/actions/workflows/rust.yml)
+[![Crates.io: otlp-logger](https://img.shields.io/crates/v/otlp-logger.svg)](https://crates.io/crates/otlp-logger)
+[![build](https://github.com/fdeantoni/otlp-logger/actions/workflows/rust.yml/badge.svg)](https://github.com/fdeantoni/otlp-logger/actions/workflows/rust.yml)
+[![LICENSE](https://img.shields.io/crates/l/otlp-logger)](./LICENSE)
 
 # otlp-logger
 
@@ -64,9 +66,9 @@ async fn main() {
 }
 ```
 
-Traces, metrics, and logs are sent to the configured OTLP endpoint. The traces,
-metrics, and log level are configured via the RUST_LOG environment variable.
-This behavior can be overridden by setting the `trace_level`, `metrics_level`, or
+Traces and logs are sent to the configured OTLP endpoint. The traces
+and log levels are configured via the RUST_LOG environment variable.
+This behavior can be overridden by setting the `trace_level` or
 `stdout_level` fields in the `OtlpConfig` struct.
 ```rust
 use otlp_logger::{OtlpConfigBuilder, LevelFilter};
@@ -75,45 +77,10 @@ use otlp_logger::{OtlpConfigBuilder, LevelFilter};
 async fn main() {
   let config = OtlpConfigBuilder::default()
                  .otlp_endpoint("http://localhost:4317".to_string())
-                 .metrics_level(LevelFilter::TRACE)
                  .trace_level(LevelFilter::INFO)
                  .stdout_level(LevelFilter::ERROR)
                  .build()
                  .expect("failed to create otlp config builder");
-
-  otlp_logger::init_with_config(config).await.expect("failed to initialize logger");
-
-  // ... your application code
-
-  // shutdown the logger
-  otlp_logger::shutdown();
-}
-```
-
-The OtlpConfig struct also allows you to configure metrics aggregation. Under the hood
-the default aggregation is provided by the OpenTelemetry SDK's DefaultAggregationSelector.
-The default can be overridden by setting the `metrics_aggregation` field in the `OtlpConfig`
-struct. The `metrics_aggregation` field is of type `MetricsAggregationConfig` which can be
-built with `MetricsAggregationConfigBuilder` struct.
-```rust
-use otlp_logger::{OtlpConfig, MetricsAggregation, MetricsAggregationConfig};
-
-#[tokio::main]
-async fn main() {
-
-  let metrics = MetricsAggregationConfig::builder()
-       .histogram(MetricsAggregation::ExplicitBucketHistogram {
-           boundaries: vec![
-               0.0, 5.0, 10.0, 25.0, 50.0, 75.0, 100.0, 250.0, 500.0, 750.0, 1000.0
-           ],
-           record_min_max: true,
-       }).build().expect("valid aggregation");
-
-  let config = OtlpConfig::builder()
-                .otlp_endpoint("http://localhost:4317".to_string())
-                .metrics_aggregation(metrics)
-                .build()
-                .expect("failed to create otlp config builder");
 
   otlp_logger::init_with_config(config).await.expect("failed to initialize logger");
 
@@ -129,6 +96,6 @@ async fn main() {
 [`opentelemetry`]: https://crates.io/crates/opentelemetry
 
 
-Current version: 0.3.0
+Current version: 0.4.0
 
 License: Apache-2.0

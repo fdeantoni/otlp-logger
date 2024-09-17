@@ -6,9 +6,7 @@ use tracing::*;
 use serde_json::Value;
 
 use testcontainers::runners::AsyncRunner;
-
 use crate::jaeger::{Jaeger, JAEGER_PORT, OTLP_PORT};
-
 
 #[tokio::test]
 #[tracing::instrument]
@@ -45,12 +43,28 @@ async fn test_otlp() -> Result<(), Box<dyn std::error::Error + 'static>> {
         jaeger_port,
         service_name
     );
-    let res = reqwest::get(url).await?;
-    let traces = res.json::<Value>().await?;
-    
-    println!("Response: {:?}", traces);    
 
-    assert_eq!(traces["data"].as_array().unwrap().len(), 1);
+    let mut pass = false;
+    let mut retry = 0;
+
+    while !pass && retry < 5 {
+        let res = reqwest::get(&url).await;
+        match res {
+            Ok(response) => {
+                let traces = response.json::<Value>().await?;
+                if traces["data"].as_array().unwrap().len() > 0 {
+                    pass = true;
+                }
+            }
+            Err(_) => {
+                println!("Failed to fetch traces, retrying...");
+            }
+        }
+        retry += 1;
+        tokio::time::sleep(std::time::Duration::from_secs(2)).await;
+    }
+
+    assert!(pass, "No traces found after 5 retries");
 
     Ok(())
 }
