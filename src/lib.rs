@@ -8,8 +8,8 @@
 //! ```toml
 //! [dependencies]
 //! tracing = "0.1"
-//! otlp-logger = "0.3"
-//! tokio = { version = "1.37", features = ["rt", "macros"] }
+//! otlp-logger = "0.4"
+//! tokio = { version = "1.38", features = ["rt", "macros"] }
 //! ```
 //! 
 //! Because this crate uses the batching function of the OpenTelemetry SDK, it is
