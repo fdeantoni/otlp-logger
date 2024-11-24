@@ -12,19 +12,19 @@ resolver = "2"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-tracing-subscriber = { version = "0.3", features = ["env-filter", "fmt"] }
-tracing-opentelemetry = "0.26.0"
-opentelemetry = { version = "0.25.0", features = ["trace", "logs"] }
-opentelemetry_sdk = { version = "0.25.0", features = ["metrics", "rt-tokio"] }
-opentelemetry-otlp = { version = "0.25.0", features = ["trace", "logs"] }
-opentelemetry-semantic-conventions = "0.25.0"
 anyhow = "1.0"
-thiserror = "1.0"
-derive_builder = "0.20.0"
+derive_builder = "0.20"
+opentelemetry = "0.27"
+opentelemetry-semantic-conventions = {version = "0.27", features=["semconv_experimental"]}
+thiserror = "2.0"
+tracing-opentelemetry = "0.28"
+tracing-subscriber = { version = "0.3", features = ["env-filter", "fmt"] }
+opentelemetry_sdk = { version = "0.27", features = ["metrics", "rt-tokio"] }
+opentelemetry-otlp = { version = "0.27", features = ["trace", "logs"] }
 
 [dev-dependencies]
-tokio = { version = "1.38", features = ["rt","macros"] }
+tokio = { version = "1.4", features = ["rt", "macros"] }
 tracing = "0.1"
-testcontainers = "0.22.0"
-reqwest = { version = "0.12.3", features = ["blocking", "json"] }
+testcontainers = "0.22"
+reqwest = { version = "0.12", features = ["blocking", "json"] }
 serde_json = "1.0"
