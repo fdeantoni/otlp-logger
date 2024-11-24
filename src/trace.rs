@@ -1,24 +1,21 @@
-use anyhow::{Context, Result};
-
-use opentelemetry::trace::TracerProvider as _;
+use anyhow::Result;
+use opentelemetry::global;
+use opentelemetry::trace::TracerProvider;
+use opentelemetry_otlp::SpanExporter;
 use opentelemetry_otlp::WithExportConfig;
-use opentelemetry_sdk::{trace as sdktrace, Resource};
+use opentelemetry_sdk::trace::Config;
+use opentelemetry_sdk::trace::Tracer;
+use opentelemetry_sdk::{runtime, trace as sdktrace, Resource};
 
-
-pub fn otel_tracer(endpoint: &str, resource: Resource) -> Result<sdktrace::Tracer> {
-    opentelemetry_otlp::new_pipeline()
-        .tracing()
-        .with_exporter(
-            opentelemetry_otlp::new_exporter()
-                .tonic()
-                .with_endpoint(endpoint)
-        )
-        .with_trace_config(sdktrace::Config::default().with_resource(resource))
-        .with_batch_config(
-            sdktrace::BatchConfigBuilder::default().build(),
-        )
-        .install_batch(opentelemetry_sdk::runtime::Tokio)
-        .map( |p| p.tracer_builder("tracing").build() )
-        .context("Unable to initialize metrics OtlpPipeline")
+pub fn otel_tracer(endpoint: &str, resource: Resource) -> Result<Tracer> {
+    let exporter = SpanExporter::builder()
+        .with_tonic()
+        .with_endpoint(endpoint)
+        .build()?;
+    let provider: sdktrace::TracerProvider = sdktrace::TracerProvider::builder()
+        .with_config(Config::default().with_resource(resource))
+        .with_batch_exporter(exporter, runtime::Tokio)
+        .build();
+    global::set_tracer_provider(provider.clone());
+    Ok(provider.tracer("tracing-otel-subscriber"))
 }
-
