@@ -135,7 +135,7 @@ fn init_otel(config: &OtlpConfig) -> Result<()> {
 
     let resource = otel_resource(config);
 
-    let tracer: opentelemetry_sdk::trace::Tracer = otel_tracer(otlp_endpoint, resource.clone())?;
+    let tracer = otel_tracer(otlp_endpoint, resource.clone())?;
     let traces_layer = tracing_opentelemetry::layer()
         .with_tracer(tracer)
         .with_filter(define_filter_level(config.trace_level));

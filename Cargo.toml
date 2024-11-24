@@ -12,15 +12,15 @@ resolver = "2"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-anyhow = "1.0"
-derive_builder = "0.20"
-opentelemetry = "0.27"
-opentelemetry-semantic-conventions = {version = "0.27", features=["semconv_experimental"]}
-thiserror = "2.0"
-tracing-opentelemetry = "0.28"
 tracing-subscriber = { version = "0.3", features = ["env-filter", "fmt"] }
+tracing-opentelemetry = "0.28"
+opentelemetry = "0.27"
 opentelemetry_sdk = { version = "0.27", features = ["metrics", "rt-tokio"] }
 opentelemetry-otlp = { version = "0.27", features = ["trace", "logs"] }
+opentelemetry-semantic-conventions = {version = "0.27", features=["semconv_experimental"]}
+anyhow = "1.0"
+thiserror = "2.0"
+derive_builder = "0.20"
 
 [dev-dependencies]
 tokio = { version = "1.4", features = ["rt", "macros"] }
