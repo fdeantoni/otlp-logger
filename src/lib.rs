@@ -140,6 +140,8 @@ fn init_otel(config: &OtlpConfig) -> Result<()> {
 
     let stdout_layer = fmt::Layer::default()
         .compact()
+        .with_file(true)
+        .with_line_number(true)
         .with_filter(define_filter_level(config.stdout_level));
 
     tracing_subscriber::registry()

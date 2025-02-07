@@ -14,8 +14,8 @@ Simply add the following to your `Cargo.toml`:
 ```toml
 [dependencies]
 tracing = "0.1"
-otlp-logger = "0.4"
-tokio = { version = "1.38", features = ["rt", "macros"] }
+otlp-logger = "0.5"
+tokio = { version = "1.43", features = ["rt", "macros"] }
 ```
 
 Because this crate uses the batching function of the OpenTelemetry SDK, it is
@@ -96,6 +96,6 @@ async fn main() {
 [`opentelemetry`]: https://crates.io/crates/opentelemetry
 
 
-Current version: 0.4.0
+Current version: 0.5.0
 
 License: Apache-2.0
