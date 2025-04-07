@@ -28,7 +28,9 @@ async fn override_level() -> Result<(), Box<dyn std::error::Error + 'static>> {
     let port = container.get_host_port_ipv4(OTLP_PORT).await?;
     let endpoint = format!("http://localhost:{}", port);
 
-    std::env::set_var("RUST_LOG", "info,override_level=error");
+    unsafe {
+        std::env::set_var("RUST_LOG", "info,override_level=info");
+    }
 
     let service_name = "override-level";
 
@@ -36,16 +38,17 @@ async fn override_level() -> Result<(), Box<dyn std::error::Error + 'static>> {
         .otlp_endpoint(endpoint)
         .service_name(service_name.to_string())
         .trace_level(LevelFilter::TRACE)
+        .log_level(LevelFilter::OFF)
         .build()
         .unwrap();
-    otlp_logger::init_with_config(config).await.unwrap();
+    let logger = otlp_logger::OtlpLogger::init_with_config(config).await.expect("Failed to initialize logger");
 
     info!("This is an info message");
     let result = trace_me(5, 2);
     trace!(result, "Result of adding two numbers");
     error!("This is an error message");
 
-    tokio::time::sleep(std::time::Duration::from_secs(1)).await;
+    tokio::time::sleep(std::time::Duration::from_secs(2)).await;
 
     let jaeger_port = container.get_host_port_ipv4(JAEGER_PORT).await?;
     let url = format!(
@@ -75,6 +78,8 @@ async fn override_level() -> Result<(), Box<dyn std::error::Error + 'static>> {
     }
 
     assert!(pass, "No traces found after 5 retries");
+
+    logger.shutdown();
 
     Ok(())
 }

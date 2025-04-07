@@ -6,7 +6,9 @@ const NAME: &str = "otel/opentelemetry-collector-contrib";
 const TAG: &str = "0.98.0";
 const DEFAULT_WAIT: u64 = 3000;
 
+#[allow(dead_code)]
 pub const OTLP_PORT: u16 = 4317;
+#[allow(dead_code)]
 pub const PROM_METRICS_PORT: u16 = 55679;
 
 const DEFAULT_CONFIG: &str = r#"

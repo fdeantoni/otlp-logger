@@ -1,12 +1,10 @@
-mod jaeger;
+mod collector;
 
 use std::env;
 use tracing::*;
 
-use serde_json::Value;
-
 use testcontainers::runners::AsyncRunner;
-use crate::jaeger::{Jaeger, JAEGER_PORT, OTLP_PORT};
+use crate::collector::{Collector, OTLP_PORT};
 
 #[tokio::test]
 #[tracing::instrument]
@@ -17,43 +15,46 @@ async fn test_otlp() -> Result<(), Box<dyn std::error::Error + 'static>> {
         return Ok(());
     }
 
-    let image = Jaeger::default();
+    let image = Collector::default();
     let container = image.start().await?;
 
     let port = container.get_host_port_ipv4(OTLP_PORT).await?;
     let endpoint = format!("http://localhost:{}", port);
 
-    std::env::set_var("RUST_LOG", "info,init_otlp=trace");
-    std::env::set_var("OTEL_EXPORTER_OTLP_ENDPOINT", endpoint);
+    unsafe {
+        std::env::set_var("RUST_LOG", "info,init_otlp=trace");
+        std::env::set_var("OTEL_EXPORTER_OTLP_ENDPOINT", endpoint);
 
-    let service_name = "init-otlp";
-    std::env::set_var("OTEL_RESOURCE_ATTRIBUTES", format!("service.name={}", service_name));
+        let service_name = "init-otlp";
+        std::env::set_var("OTEL_RESOURCE_ATTRIBUTES", format!("service.name={}", service_name));
+    }
 
-    otlp_logger::init().await;
+    let provider = otlp_logger::init().await?;
 
     info!("This is an info message");
     let result = trace_me(5, 2);
     trace!(result, "Result of adding two numbers");
 
-    tokio::time::sleep(std::time::Duration::from_secs(1)).await;
+    tokio::time::sleep(std::time::Duration::from_secs(5)).await;
 
-    let jaeger_port = container.get_host_port_ipv4(JAEGER_PORT).await?;
-    let url = format!(
-        "http://localhost:{}/api/traces?service={}",
-        jaeger_port,
-        service_name
-    );
+    let test_logs = r#"{"kind": "exporter", "data_type": "logs", "name": "debug", "resource logs": 1, "log records": 3}"#;
+    let test_traces = r#"{"kind": "exporter", "data_type": "traces", "name": "debug", "resource spans": 1, "spans": 1}"#;
 
     let mut pass = false;
     let mut retry = 0;
 
     while !pass && retry < 5 {
-        let res = reqwest::get(&url).await;
+        let res = container.stderr_to_vec().await;
         match res {
             Ok(response) => {
-                let traces = response.json::<Value>().await?;
-                if traces["data"].as_array().unwrap().len() > 0 {
+                let logs = String::from_utf8_lossy(&response);
+                println!("Logs: {}", logs);
+                
+                if logs.contains(test_logs) && logs.contains(test_traces) { 
                     pass = true;
+                    println!("Found traces in logs");
+                } else {
+                    println!("No traces found, retrying...");
                 }
             }
             Err(_) => {
@@ -65,6 +66,8 @@ async fn test_otlp() -> Result<(), Box<dyn std::error::Error + 'static>> {
     }
 
     assert!(pass, "No traces found after 5 retries");
+
+    provider.shutdown();
 
     Ok(())
 }
