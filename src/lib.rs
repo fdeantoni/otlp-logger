@@ -62,9 +62,9 @@
 //! }
 //! ```
 //! 
-//! Traces and logs are sent to the configured OTLP endpoint. The traces  
-//! and log levels are configured via the RUST_LOG environment variable.
-//! This behavior can be overridden by setting the `trace_level` or
+//! Traces, metrics, and logs are sent to the configured OTLP endpoint. The traces,  
+//! metrics, and log levels are configured via the RUST_LOG environment variable.
+//! This behavior can be overridden by setting the `trace_level`, `metrics_level` or
 //! `log_level` fields in the `OtlpConfig` struct. You can control what
 //! goes to stdout by setting the `stdout_level` field. 
 //! ```rust
