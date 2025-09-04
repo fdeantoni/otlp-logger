@@ -2,8 +2,8 @@ use std::collections::HashMap;
 
 use testcontainers::{core::WaitFor, Image};
 
-const NAME: &str = "otel/opentelemetry-collector-contrib";
-const TAG: &str = "0.98.0";
+const NAME: &str = "otel/opentelemetry-collector";
+const TAG: &str = "latest";
 const DEFAULT_WAIT: u64 = 3000;
 
 #[allow(dead_code)]
@@ -16,13 +16,16 @@ receivers:
   otlp:
     protocols:
       grpc:
+        endpoint: 0.0.0.0:4317
       http:
+        endpoint: 0.0.0.0:4318
+
+processors:
+  batch:
 
 exporters:
   debug:
     verbosity: detailed
-  prometheus:
-    endpoint: ":55679"
 
 service:
   pipelines:
@@ -33,7 +36,7 @@ service:
     metrics:
       receivers: [otlp]
       processors: []
-      exporters: [debug, prometheus]
+      exporters: [debug]
     logs:
       receivers: [otlp]
       processors: []

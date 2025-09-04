@@ -27,6 +27,7 @@ async fn test_otlp() -> Result<(), Box<dyn std::error::Error + 'static>> {
 
         let service_name = "init-otlp";
         std::env::set_var("OTEL_RESOURCE_ATTRIBUTES", format!("service.name={}", service_name));
+        std::env::set_var("OTEL_METRIC_EXPORT_INTERVAL", "1000");
     }
 
     let provider = otlp_logger::init().await?;
@@ -34,11 +35,13 @@ async fn test_otlp() -> Result<(), Box<dyn std::error::Error + 'static>> {
     info!("This is an info message");
     let result = trace_me(5, 2);
     trace!(result, "Result of adding two numbers");
+    info!(monotonic_counter.foo = 1);
 
     tokio::time::sleep(std::time::Duration::from_secs(5)).await;
 
-    let test_logs = r#"{"kind": "exporter", "data_type": "logs", "name": "debug", "resource logs": 1, "log records": 3}"#;
-    let test_traces = r#"{"kind": "exporter", "data_type": "traces", "name": "debug", "resource spans": 1, "spans": 1}"#;
+    let test_logs = r#""otelcol.component.kind": "exporter", "otelcol.signal": "logs""#;
+    let test_traces = r#""otelcol.component.kind": "exporter", "otelcol.signal": "traces""#;
+    let test_metrics = r#""otelcol.component.kind": "exporter", "otelcol.signal": "metrics""#;
 
     let mut pass = false;
     let mut retry = 0;
@@ -49,23 +52,23 @@ async fn test_otlp() -> Result<(), Box<dyn std::error::Error + 'static>> {
             Ok(response) => {
                 let logs = String::from_utf8_lossy(&response);
                 println!("Logs: {}", logs);
-                
-                if logs.contains(test_logs) && logs.contains(test_traces) { 
+
+                if logs.contains(test_logs) && logs.contains(test_traces) && logs.contains(test_metrics) {
                     pass = true;
-                    println!("Found traces in logs");
+                    println!("Found traces/logs/metrics in logs");
                 } else {
-                    println!("No traces found, retrying...");
+                    println!("No traces/logs/metrics found, retrying...");
                 }
             }
             Err(_) => {
-                println!("Failed to fetch traces, retrying...");
+                println!("Failed to fetch traces/logs/metrics, retrying...");
             }
         }
         retry += 1;
         tokio::time::sleep(std::time::Duration::from_secs(2)).await;
     }
 
-    assert!(pass, "No traces found after 5 retries");
+    assert!(pass, "No traces, logs, and/or metrics found after 5 retries");
 
     provider.shutdown();
 
